@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Discover quick, fun browser games. Play free online games on Arcade Nest.">
+  <meta name="theme-color" content="#10131f">
+  <title>Arcade Nest — Play Something Different</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Arcade Nest home">
+      <span class="brand-mark" aria-hidden="true">✦</span>
+      <span>ARCADE<span class="brand-accent">NEST</span></span>
+    </a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a class="nav-link active" href="#discover">Discover</a>
+      <a class="nav-link" href="#categories">Categories</a>
+      <a class="nav-link" href="#coming-soon">Coming soon</a>
+    </nav>
+    <button class="menu-button" id="menuButton" aria-label="Open navigation" aria-expanded="false">☰</button>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="discover">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="live-dot"></span> YOUR NEXT BREAK STARTS HERE</p>
+        <h1>A little play.<br><span>A lot of fun.</span></h1>
+        <p class="hero-description">Quick browser games, zero downloads. Find a new favourite and jump straight in when the games arrive.</p>
+        <a class="button button-primary" href="#game-library">Explore the library <span aria-hidden="true">↘</span></a>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
+        <div class="art-tile tile-purple">✦</div>
+        <div class="art-tile tile-orange">◒</div>
+        <div class="art-tile tile-green">⌁</div>
+        <div class="art-center"><span>PLAY</span><strong>ANYTIME</strong><small>NO DOWNLOADS</small></div>
+        <span class="spark spark-one">✳</span><span class="spark spark-two">✦</span><span class="spark spark-three">·</span>
+      </div>
+    </section>
+
+    <section class="search-section" aria-label="Find a game">
+      <div class="search-wrap">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <label class="visually-hidden" for="gameSearch">Search games</label>
+        <input id="gameSearch" type="search" placeholder="Search games, genres, or moods..." autocomplete="off">
+        <kbd>/</kbd>
+      </div>
+      <p class="search-hint">Try “puzzle”, “arcade”, or “relaxing”</p>
+    </section>
+
+    <section class="section-block" id="categories">
+      <div class="section-heading">
+        <div><p class="eyebrow">FIND YOUR KIND OF FUN</p><h2>Browse by category</h2></div>
+      </div>
+      <div class="category-list" role="group" aria-label="Filter games by category">
+        <button class="category-chip selected" data-category="all"><span>✧</span> All games</button>
+        <button class="category-chip" data-category="puzzle"><span>▦</span> Puzzle</button>
+        <button class="category-chip" data-category="arcade"><span>◉</span> Arcade</button>
+        <button class="category-chip" data-category="strategy"><span>⌘</span> Strategy</button>
+        <button class="category-chip" data-category="casual"><span>☼</span> Casual</button>
+      </div>
+    </section>
+
+    <section class="section-block library-section" id="game-library">
+      <div class="section-heading library-heading">
+        <div><p class="eyebrow">THE GAME LIBRARY</p><h2>Pick your next game<span class="heading-period">.</span></h2></div>
+        <span class="result-count" id="resultCount">0 games</span>
+      </div>
+      <div class="game-grid" id="gameGrid" aria-live="polite">
+        <!-- Game cards are rendered from games.js. Add real games to the catalogue when ready. -->
+      </div>
+      <div class="empty-state" id="emptyState" hidden>
+        <div class="empty-icon">⌕</div><h3>No games found</h3><p>Try another search or choose a different category.</p>
+        <button class="button button-secondary" id="resetFilters">Clear filters</button>
+      </div>
+    </section>
+
+    <section class="coming-soon-section" id="coming-soon">
+      <div class="coming-icon" aria-hidden="true">✦</div>
+      <div><p class="eyebrow">A LITTLE PATIENCE</p><h2>Something fun is loading.</h2><p>The arcade is being prepared. New games will appear here as they’re ready.</p></div>
+      <span class="coming-decoration" aria-hidden="true">✳</span>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand footer-brand" href="./"><span class="brand-mark" aria-hidden="true">✦</span><span>ARCADE<span class="brand-accent">NEST</span></span></a>
+    <p>Small games. Good breaks.</p>
+    <span class="footer-note">© <span id="year"></span> Arcade Nest</span>
+  </footer>
+
+  <script src="games.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
