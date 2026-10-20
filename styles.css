@@ -143,3 +143,75 @@ h2 { font-size: clamp(24px, 3vw, 32px); letter-spacing: -.05em; line-height: 1.2
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
 }
+const games = [
+  {
+    id: "triad-starfront",
+    title: "Triad Starfront",
+    category: "Arcade",
+    description: "Mine asteroids, collect crystals, upgrade your ship, and fight for one of three factions.",
+    status: "available",
+    url: "games/triad-starfront.html",
+    controls: "WASD or arrows to move, mouse to aim, click or Space to fire",
+    featured: true
+  },
+  {
+    id: "vaultbreak",
+    title: "Vaultbreak",
+    category: "Puzzle",
+    description: "Crack a security grid by flipping tiles and their neighbours.",
+    status: "available",
+    url: "games/vaultbreak.html",
+    controls: "Tap or click tiles",
+    featured: true
+  },
+  {
+    id: "logic-grid",
+    title: "Logic Grid",
+    category: "Puzzle",
+    description: "A deduction challenge.",
+    status: "coming-soon",
+    url: "#"
+  },
+  {
+    id: "neon-dash",
+    title: "Neon Dash",
+    category: "Arcade",
+    description: "Race through a glowing obstacle course.",
+    status: "coming-soon",
+    url: "#"
+  },
+  {
+    id: "orbit-blaster",
+    title: "Orbit Blaster",
+    category: "Arcade",
+    description: "Survive waves of enemies in space.",
+    status: "coming-soon",
+    url: "#"
+  },
+  {
+    id: "pixel-puzzle",
+    title: "Pixel Puzzle",
+    category: "Puzzle",
+    description: "Solve visual puzzles.",
+    status: "coming-soon",
+    url: "#"
+  },
+  {
+    id: "tower-tactics",
+    title: "Tower Tactics",
+    category: "Strategy",
+    description: "Outsmart the board with careful planning.",
+    status: "coming-soon",
+    url: "#"
+  },
+  {
+    id: "chill-clicker",
+    title: "Chill Clicker",
+    category: "Casual",
+    description: "A relaxed game for a short break.",
+    status: "coming-soon",
+    url: "#"
+  }
+];
+
+window.GAMES = games;
