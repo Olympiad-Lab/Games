@@ -1,0 +1,47 @@
+[
+  {
+    "id": "starfront",
+    "name": "Triad Starfront",
+    "description": "Command a starship, collect crystals, unlock ships and defend your base.",
+    "category": "shooter",
+    "icon": "🚀",
+    "entry": "./games/starfront/index.html",
+    "tags": ["space", "ships", "upgrade", "crystals"]
+  },
+  {
+    "id": "vaultbreak",
+    "name": "Vaultbreak",
+    "description": "Crack the puzzle, test your logic and break into the vault.",
+    "category": "puzzle",
+    "icon": "🔐",
+    "entry": "./games/vaultbreak/index.html",
+    "tags": ["logic", "brain", "puzzle"]
+  },
+  {
+    "id": "neon-drift",
+    "name": "Neon Drift",
+    "description": "Dodge obstacles and survive the neon highway.",
+    "category": "racing",
+    "icon": "🏎️",
+    "entry": "./games/neon-drift/index.html",
+    "tags": ["car", "speed", "racing"]
+  },
+  {
+    "id": "orbit-defense",
+    "name": "Orbit Defense",
+    "description": "Protect your planet from incoming waves of enemies.",
+    "category": "action",
+    "icon": "🪐",
+    "entry": "./games/orbit-defense/index.html",
+    "tags": ["space", "defense", "strategy"]
+  },
+  {
+    "id": "memory-matrix",
+    "name": "Memory Matrix",
+    "description": "Remember patterns and challenge your concentration.",
+    "category": "puzzle",
+    "icon": "🧠",
+    "entry": "./games/memory-matrix/index.html",
+    "tags": ["memory", "logic", "brain"]
+  }
+]
