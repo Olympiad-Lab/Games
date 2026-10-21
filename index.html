@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="google-site-verification" content="3nID4ht8TWQpAiobn6CXA8mtwhDAMIKQcCTpIVv_ilw" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080b16">
+  <title>Arcade Nest | Play Beyond</title>
+  <style>
+    :root {
+      --bg: #080b16;
+      --panel: #11182b;
+      --panel2: #18223a;
+      --text: #f1f5ff;
+      --muted: #9ba9c8;
+      --accent: #71f6d2;
+      --accent2: #9d8cff;
+      --border: #283451;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(ellipse at top, #182044 0%, transparent 48%),
+        var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+
+    button, input { font: inherit; }
+
+    button {
+      cursor: pointer;
+      border: 0;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px clamp(16px, 5vw, 64px);
+      border-bottom: 1px solid var(--border);
+      background: #080b16dc;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      backdrop-filter: blur(14px);
+    }
+
+    .logo {
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .logo span { color: var(--accent); }
+
+    .status {
+      color: var(--muted);
+      font-size: .8rem;
+    }
+
+    .hero {
+      padding: 64px 20px 38px;
+      text-align: center;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-weight: 800;
+      font-size: .75rem;
+    }
+
+    h1 {
+      margin: 12px 0;
+      font-size: clamp(2.4rem, 8vw, 5rem);
+      line-height: 1.02;
+      letter-spacing: -3px;
+    }
+
+    h1 span {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero p {
+      max-width: 570px;
+      margin: 18px auto 28px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .search-wrap {
+      width: min(560px, 100%);
+      margin: auto;
+    }
+
+    #search {
+      width: 100%;
+      padding: 15px 18px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      outline: none;
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    #search:focus { border-color: var(--accent); }
+
+    main {
+      max-width: 1250px;
+      padding: 0 20px 70px;
+      margin: auto;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin: 12px 0 26px;
+    }
+
+    .filter {
+      background: var(--panel);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 9px 16px;
+    }
+
+    .filter.active {
+      color: #07120f;
+      background: var(--accent);
+      border-color: var(--accent);
+      font-weight: 800;
+    }
+
+    .section-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    #count {
+      color: var(--muted);
+      font-size: .85rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      overflow: hidden;
+      background: linear-gradient(150deg, var(--panel2), var(--panel));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      transition: transform .2s, border-color .2s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: var(--accent);
+    }
+
+    .cover {
+      height: 150px;
+      display: grid;
+      place-items: center;
+      font-size: 4rem;
+      background:
+        radial-gradient(circle at 50% 70%, #5146a966, transparent 55%),
+        linear-gradient(135deg, #182949, #111426);
+      position: relative;
+    }
+
+    .cover::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: .3;
+      background-image: radial-gradient(#fff 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    .cover span { z-index: 1; }
+
+    .card-content { padding: 17px; }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 1.15rem;
+    }
+
+    .card p {
+      min-height: 42px;
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.5;
+    }
+
+    .card-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tag {
+      color: var(--accent);
+      font-size: .75rem;
+      text-transform: capitalize;
+    }
+
+    .play {
+      background: var(--accent);
+      color: #07120f;
+      border-radius: 9px;
+      padding: 9px 14px;
+      font-weight: 850;
+    }
+
+    .play:hover { filter: brightness(1.1); }
+
+    .empty, .message {
+      color: var(--muted);
+      text-align: center;
+      padding: 35px 12px;
+      line-height: 1.6;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      background: #03050beF;
+      padding: 12px;
+    }
+
+    .modal.open { display: flex; flex-direction: column; }
+
+    .modal-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 4px 12px;
+    }
+
+    #gameTitle {
+      font-weight: 850;
+      overflow-wrap: anywhere;
+    }
+
+    .close {
+      background: #26324d;
+      color: white;
+      border-radius: 9px;
+      padding: 10px 15px;
+    }
+
+    #gameFrame {
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      background: #080b16;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    @media (max-width: 500px) {
+      .hero { padding-top: 44px; }
+      h1 { letter-spacing: -1.5px; }
+      .status { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">ARCADE<span>NEST</span></div>
+    <div class="status" id="siteStatus">Loading game library...</div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">Your next adventure starts here</div>
+    <h1>Play Beyond<br><span>Ordinary.</span></h1>
+    <p>
+      Explore space battles, puzzle challenges and arcade adventures.
+      One collection, multiple worlds.
+    </p>
+    <div class="search-wrap">
+      <input id="search" type="search"
+        placeholder="Search games..." aria-label="Search games">
+    </div>
+  </section>
+
+  <main>
+    <div class="toolbar" id="filters">
+      <button class="filter active" data-category="all">All Games</button>
+    </div>
+
+    <div class="section-heading">
+      <h2>Game Library</h2>
+      <span id="count">Loading...</span>
+    </div>
+
+    <div class="grid" id="gameGrid"></div>
+    <div class="empty" id="emptyState" hidden>
+      No games found. Try another search or category.
+    </div>
+  </main>
+
+  <footer>
+    Arcade Nest · Built for curious minds and competitive fingers.
+  </footer>
+
+  <div class="modal" id="gameModal" role="dialog"
+       aria-modal="true" aria-label="Game window">
+    <div class="modal-bar">
+      <span id="gameTitle">Game</span>
+      <button class="close" id="closeGame">✕ Close Game</button>
+    </div>
+    <iframe id="gameFrame" title="Game"
+      allow="fullscreen; autoplay"
+      referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const grid = document.getElementById("gameGrid");
+      const search = document.getElementById("search");
+      const filters = document.getElementById("filters");
+      const count = document.getElementById("count");
+      const emptyState = document.getElementById("emptyState");
+      const status = document.getElementById("siteStatus");
+      const modal = document.getElementById("gameModal");
+      const frame = document.getElementById("gameFrame");
+      const gameTitle = document.getElementById("gameTitle");
+
+      let games = [];
+      let activeCategory = "all";
+
+      const icons = {
+        arcade: "🚀",
+        action: "⚡",
+        puzzle: "🧩",
+        strategy: "🧠",
+        racing: "🏎️",
+        shooter: "🌌"
+      };
+
+      function safeText(value, fallback = "") {
+        return typeof value === "string" ? value : fallback;
+      }
+
+      function normalisePath(path) {
+        // Resolve paths relative to this website, not the domain root.
+        return new URL(path, document.baseURI).href;
+      }
+
+      function renderFilters() {
+        const categories = [...new Set(
+          games.map(g => safeText(g.category, "other").toLowerCase())
+        )];
+
+        filters.innerHTML = "";
+
+        const all = ["all", ...categories];
+
+        all.forEach(category => {
+          const button = document.createElement("button");
+          button.className =
+            "filter" + (category === activeCategory ? " active" : "");
+          button.dataset.category = category;
+          button.textContent =
+            category === "all"
+              ? "All Games"
+              : category.charAt(0).toUpperCase() + category.slice(1);
+
+          filters.appendChild(button);
+        });
+      }
+
+      function renderGames() {
+        const query = search.value.trim().toLowerCase();
+
+        const visible = games.filter(game => {
+          const category = safeText(game.category, "other").toLowerCase();
+          const searchable = [
+            game.name,
+            game.description,
+            game.category,
+            ...(Array.isArray(game.tags) ? game.tags : [])
+          ].map(v => safeText(v)).join(" ").toLowerCase();
+
+          return (activeCategory === "all" ||
+                  category === activeCategory) &&
+                 searchable.includes(query);
+        });
+
+        grid.replaceChildren();
+        count.textContent = `${visible.length} game${visible.length === 1 ? "" : "s"}`;
+        emptyState.hidden = visible.length !== 0;
+
+        visible.forEach(game => {
+          const card = document.createElement("article");
+          card.className = "card";
+
+          const cover = document.createElement("div");
+          cover.className = "cover";
+
+          const icon = document.createElement("span");
+          icon.textContent = safeText(
+            game.icon,
+            icons[safeText(game.category).toLowerCase()] || "🎮"
+          );
+          cover.appendChild(icon);
+
+          const content = document.createElement("div");
+          content.className = "card-content";
+
+          const title = document.createElement("h3");
+          title.textContent = safeText(game.name, "Untitled Game");
+
+          const description = document.createElement("p");
+          description.textContent = safeText(
+            game.description, "An adventure awaits."
+          );
+
+          const bottom = document.createElement("div");
+          bottom.className = "card-bottom";
+
+          const tag = document.createElement("span");
+          tag.className = "tag";
+          tag.textContent = safeText(game.category, "other");
+
+          const play = document.createElement("button");
+          play.className = "play";
+          play.textContent = "Play →";
+          play.addEventListener("click", () => launchGame(game));
+
+          bottom.append(tag, play);
+          content.append(title, description, bottom);
+          card.append(cover, content);
+          grid.appendChild(card);
+        });
+      }
+
+      function launchGame(game) {
+        if (!game || typeof game.entry !== "string") {
+          alert("This game has no valid entry file.");
+          return;
+        }
+
+        const gameUrl = normalisePath(game.entry);
+        gameTitle.textContent = safeText(game.name, "Game");
+        modal.classList.add("open");
+        document.body.style.overflow = "hidden";
+
+        // HTML games load directly. JavaScript games use a small host page
+        // that imports their module.
+        if (gameUrl.endsWith(".html")) {
+          frame.src = gameUrl;
+        } else if (gameUrl.endsWith(".js")) {
+          const escapedUrl = JSON.stringify(gameUrl);
+          const escapedName = JSON.stringify(
+            safeText(game.name, "Arcade Nest Game")
+          );
+
+          const host = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${safeText(game.name, "Game").replace(/[<&>"]/g, "")}</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b16;color:#fff;font-family:system-ui}
+#game-root{width:100%;height:100%}
+#error{padding:24px;color:#ffb4b4;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div id="game-root"></div>
+<div id="error"></div>
+<script type="module">
+try {
+ const module = await import(${escapedUrl});
+ if (typeof module.mount === "function") {
+   await module.mount(document.getElementById("game-root"));
+ } else if (typeof module.default === "function") {
+   await module.default(document.getElementById("game-root"));
+ } else {
+   throw new Error("Game module must export mount(root) or a default function.");
+ }
+} catch (e) {
+ document.getElementById("error").textContent =
+   "Could not load this game: " + e.message;
+ console.error(e);
+}
+<\/script>
+</body>
+</html>`;
+
+          frame.srcdoc = host;
+        } else {
+          alert("Unsupported game file. Use an .html or .js entry.");
+          closeGame();
+        }
+      }
+
+      function closeGame() {
+        modal.classList.remove("open");
+        frame.removeAttribute("src");
+        frame.removeAttribute("srcdoc");
+        document.body.style.overflow = "";
+      }
+
+      filters.addEventListener("click", event => {
+        const button = event.target.closest("button[data-category]");
+        if (!button) return;
+
+        activeCategory = button.dataset.category;
+        renderFilters();
+        renderGames();
+      });
+
+      search.addEventListener("input", renderGames);
+      document.getElementById("closeGame").addEventListener("click", closeGame);
+
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && modal.classList.contains("open")) {
+          closeGame();
+        }
+      });
+
+      async function init() {
+        try {
+          const response = await fetch("./games.json", { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(`games.json returned HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          if (!Array.isArray(data)) {
+            throw new Error("games.json must contain a JSON array.");
+          }
+
+          games = data.filter(game =>
+            game &&
+            typeof game.id === "string" &&
+            typeof game.name === "string" &&
+            typeof game.entry === "string"
+          );
+
+          renderFilters();
+          renderGames();
+          status.textContent = `${games.length} games in the library`;
+        } catch (error) {
+          console.error(error);
+          status.textContent = "Game library could not load";
+          count.textContent = "Library error";
+          emptyState.hidden = false;
+          emptyState.textContent =
+            "Could not load games.json. Check that it exists in the repository root and contains valid JSON.";
+        }
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
