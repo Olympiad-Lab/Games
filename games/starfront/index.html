@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triad Starfront</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#050914;color:#eef5ff;font-family:system-ui,sans-serif;overflow:hidden}
+button{cursor:pointer;border:1px solid #344568;border-radius:8px;padding:9px 12px;background:#182642;color:#eef5ff;font-weight:700}
+button:hover{border-color:#6ef5d0}
+button:disabled{opacity:.4;cursor:not-allowed}
+#app{height:100dvh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:#0b1325;border-bottom:1px solid #263653}
+.brand{font-weight:900;color:#71f6d2}
+#stats{font-size:12px;color:#b9c8e5;text-align:right}
+nav{display:flex;gap:7px;padding:8px;overflow-x:auto;background:#0a1020}
+nav button{white-space:nowrap}
+nav button.active{background:#71f6d2;color:#07130f}
+main{flex:1;min-height:0;position:relative}
+#battle{position:absolute;inset:0;width:100%;height:100%;display:block;background:#060b18;touch-action:none}
+.panel{position:absolute;inset:0;overflow:auto;padding:16px;background:linear-gradient(#081022f2,#070b18f7)}
+.panel h2{margin-top:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}
+.card{background:#111d34;border:1px solid #293b5b;border-radius:12px;padding:12px}
+.card h3{font-size:15px;margin:7px 0}
+.card p{font-size:12px;color:#adbedc;line-height:1.5}
+.ship-icon{height:65px;display:grid;place-items:center;font-size:39px}
+.small{font-size:12px;color:#adbedc}
+.bar{height:7px;border-radius:9px;background:#26344c;overflow:hidden;margin:6px 0}
+.bar span{display:block;height:100%;background:#71f6d2}
+#hud{position:absolute;top:8px;left:8px;right:8px;pointer-events:none;display:flex;justify-content:space-between;gap:10px;font-size:12px;text-shadow:0 2px 4px #000}
+#hud>div{background:#071020c9;padding:8px;border-radius:8px}
+#touch{position:absolute;bottom:14px;left:12px;right:12px;display:flex;justify-content:space-between;pointer-events:none}
+#touch button{pointer-events:auto;width:62px;height:58px;font-size:20px;background:#142444d9;touch-action:none}
+#fire{width:80px!important;border-color:#71f6d2!important}
+#message{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);text-align:center;width:90%;pointer-events:none;text-shadow:0 2px 8px #000}
+#message h2{font-size:clamp(25px,6vw,42px);margin:0 0 8px}
+.hidden{display:none!important}
+footer{padding:7px;text-align:center;color:#8093b7;font-size:11px;background:#080e1b}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+ <div><div class="brand">✦ TRIAD STARFRONT</div><div class="small">Frontier combat simulator</div></div>
+ <div id="stats">💎 0 crystals<br>🚀 Scout</div>
+</header>
+
+<nav>
+ <button data-tab="battle" class="active">⚔ Battle</button>
+ <button data-tab="ships">🚀 Shipyard</button>
+ <button data-tab="upgrades">⬆ Upgrades</button>
+ <button data-tab="base">🏠 Base</button>
+</nav>
+
+<main>
+ <canvas id="battle"></canvas>
+ <div id="hud">
+  <div id="leftHud">Wave 1<br>Hull 100%</div>
+  <div id="rightHud">💎 0<br>Score 0</div>
+ </div>
+ <div id="message">
+  <h2>STARFRONT</h2>
+  <p>Defend the frontier. Collect crystals. Build your fleet.</p>
+  <button id="start">START MISSION</button>
+ </div>
+ <div id="touch" class="hidden">
+  <div><button id="left">◀</button> <button id="right">▶</button></div>
+  <div><button id="fire">FIRE ✦</button></div>
+ </div>
+ <section id="ships" class="panel hidden"></section>
+ <section id="upgrades" class="panel hidden"></section>
+ <section id="base" class="panel hidden"></section>
+</main>
+<footer>Move with ← → or A/D · Fire with Space · Touch controls supported</footer>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const $ = id => document.getElementById(id);
+const canvas = $("battle");
+const ctx = canvas.getContext("2d");
+
+const shipData = [
+ ["Scout","🚀",0,1,1,1,1],
+ ["Interceptor","🛸",80,1.2,1.1,1.1,1],
+ ["Viper","✦",150,1.4,1.2,1.2,1],
+ ["Striker","🚀",250,1.1,1.7,1.2,1],
+ ["Phantom","👾",350,1.8,1.3,1.4,1],
+ ["Ranger","🛸",500,1.4,1.6,1.4,1],
+ ["Wraith","✦",650,1.9,1.6,1.5,1],
+ ["Bulwark","🚀",800,.9,1.5,2,1],
+ ["Nova","🌟",1000,1.7,2,1.6,1],
+ ["Tempest","🛸",1200,1.8,2,1.7,1],
+ ["Spectre","👾",1450,2.1,1.9,1.7,1],
+ ["Vanguard","🚀",1700,1.4,2.4,2.1,1],
+ ["Comet","☄️",2000,2.3,2.1,1.8,1],
+ ["Aegis","🛡️",2300,1.5,2.2,2.5,1],
+ ["Eclipse","🌑",2700,2.4,2.4,2,1],
+ ["Ravager","💥",3200,2,2.8,2.1,1],
+ ["Starbreaker","🌠",3800,2.5,2.7,2.3,1],
+ ["Leviathan","🐉",4500,1.7,3,3,1],
+ ["Supernova","☀️",5500,2.8,3.2,2.5,1],
+ ["Triad Prime","🔱",7000,3,3.5,3,1]
+];
+
+const defaults = {
+ crystals:0, score:0, selected:0, unlocked:[0],
+ upgrades:{damage:0,speed:0,hull:0,rate:0},
+ base:{level:0,repairs:0}
+};
+
+let save;
+try {
+ save = {...defaults,...JSON.parse(localStorage.getItem("starfront-save")||"{}")};
+ save.upgrades = {...defaults.upgrades,...save.upgrades};
+ save.base = {...defaults.base,...save.base};
+ save.unlocked = Array.isArray(save.unlocked)?save.unlocked:[0];
+} catch {
+ save = structuredClone(defaults);
+}
+
+function persist(){
+ localStorage.setItem("starfront-save",JSON.stringify(save));
+ updateStats();
+}
+
+function updateStats(){
+ $("stats").innerHTML=`💎 ${save.crystals} crystals<br>🚀 ${shipData[save.selected][0]}`;
+ $("rightHud").innerHTML=`💎 ${save.crystals}<br>Score ${save.score}`;
+}
+
+let W=1,H=1,dpr=1;
+function resize(){
+ dpr=Math.min(devicePixelRatio||1,2);
+ W=canvas.clientWidth; H=canvas.clientHeight;
+ canvas.width=Math.max(1,Math.floor(W*dpr));
+ canvas.height=Math.max(1,Math.floor(H*dpr));
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+addEventListener("resize",resize);
+resize();
+
+let tab="battle",running=false,gameOver=false;
+let player,bullets=[],enemies=[],enemyShots=[],particles=[],stars=[];
+let wave=1,kills=0,lastShot=0,scoreRun=0;
+let keys={},touchLeft=false,touchRight=false,touchFire=false;
+let lastTime=0,enemyTimer=0,elapsed=0;
+
+function initStars(){
+ stars=Array.from({length:100},()=>({
+  x:Math.random()*W,y:Math.random()*H,
+  r:Math.random()*1.8+.3,s:Math.random()*35+8
+ }));
+}
+initStars();
+
+function shipStats(){
+ const s=shipData[save.selected];
+ return {
+  speed:175*s[3]*(1+save.upgrades.speed*.12),
+  damage:18*s[4]*(1+save.upgrades.damage*.25),
+  hull:100*s[5]*(1+save.upgrades.hull*.3),
+  rate:Math.max(110,360/(1+save.upgrades.rate*.22))
+ };
+}
+
+function startMission(){
+ player={x:W/2,y:H-75,hp:shipStats().hull,max:shipStats().hull,inv:0};
+ bullets=[];enemies=[];enemyShots=[];particles=[];
+ wave=1;kills=0;scoreRun=0;enemyTimer=0;elapsed=0;
+ running=true;gameOver=false;
+ $("message").classList.add("hidden");
+ $("touch").classList.remove("hidden");
+ switchTab("battle");
+}
+
+function spawnEnemy(){
+ const type=Math.random();
+ const hp=(type>.8?65: type>.45?35:20)+wave*5;
+ enemies.push({
+  x:20+Math.random()*Math.max(1,W-40),
+  y:-25,hp,max:hp,
+  r:type>.8?20:13,
+  speed:35+Math.random()*35+wave*3,
+  vx:(Math.random()-.5)*45,
+  shoot:1+Math.random()*2,
+  type
+ });
+}
+
+function burst(x,y,color,n=12){
+ for(let i=0;i<n;i++){
+  const a=Math.random()*Math.PI*2,s=30+Math.random()*150;
+  particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
+   life:.25+Math.random()*.55,max:.8,color});
+ }
+}
+
+function shoot(){
+ const now=performance.now();
+ if(!running||now-lastShot<shipStats().rate)return;
+ lastShot=now;
+ const dmg=shipStats().damage;
+ bullets.push({x:player.x,y:player.y-19,vy:-450,dmg});
+ if(save.upgrades.damage>=3){
+  bullets.push({x:player.x-12,y:player.y-10,vy:-420,dmg:dmg*.5});
+  bullets.push({x:player.x+12,y:player.y-10,vy:-420,dmg:dmg*.5});
+ }
+}
+
+function hitPlayer(dmg){
+ if(player.inv>0)return;
+ player.hp-=dmg;player.inv=.55;
+ burst(player.x,player.y,"#ff657d",8);
+ if(player.hp<=0)endMission();
+}
+
+function endMission(){
+ running=false;gameOver=true;
+ save.score+=scoreRun;
+ persist();
+ $("touch").classList.add("hidden");
+ $("message").classList.remove("hidden");
+ $("message").innerHTML=`
+  <h2>MISSION FAILED</h2>
+  <p>Score: ${scoreRun} · Enemies defeated: ${kills}</p>
+  <p>You kept ${save.crystals} crystals in your permanent bank.</p>
+  <button id="restart">TRY AGAIN</button>`;
+ $("restart").onclick=startMission;
+}
+
+function update(dt){
+ if(!running)return;
+ elapsed+=dt;enemyTimer+=dt;
+ player.inv=Math.max(0,player.inv-dt);
+
+ const st=shipStats();
+ const move=(keys.ArrowLeft||keys.a||touchLeft?-1:0)+
+            (keys.ArrowRight||keys.d||touchRight?1:0);
+ player.x=Math.max(18,Math.min(W-18,player.x+move*st.speed*dt));
+ if(keys.Space||touchFire)shoot();
+
+ if(enemyTimer>Math.max(.28,1.05-wave*.035)){
+  enemyTimer=0;spawnEnemy();
+ }
+
+ for(const b of bullets)b.y+=b.vy*dt;
+ bullets=bullets.filter(b=>b.y>-20);
+
+ for(const e of enemies){
+  e.x+=e.vx*dt;e.y+=e.speed*dt;
+  if(e.x<e.r||e.x>W-e.r)e.vx*=-1;
+  e.shoot-=dt;
+  if(e.shoot<=0&&e.y>0){
+   enemyShots.push({x:e.x,y:e.y+e.r,vy:125+wave*4});
+   e.shoot=1.2+Math.random()*1.5;
+  }
+  if(Math.hypot(e.x-player.x,e.y-player.y)<e.r+13){
+   e.hp=0;hitPlayer(18);
+  }
+  if(e.y>H+30)hitPlayer(8);
+ }
+
+ for(const b of bullets){
+  for(const e of enemies){
+   if(e.hp>0&&Math.hypot(b.x-e.x,b.y-e.y)<e.r+4){
+    e.hp-=b.dmg;b.y=-100;
+    burst(b.x,b.y,"#71f6d2",3);
+    if(e.hp<=0){
+     kills++;scoreRun+=10+wave*2;
+     save.crystals+=Math.random()<.22?3:1;
+     burst(e.x,e.y,"#a38bff",15);
+     if(kills%10===0)wave++;
+    }
+    break;
+   }
+  }
+ }
+
+ for(const b of enemyShots){
+  b.y+=b.vy*dt;
+  if(Math.hypot(b.x-player.x,b.y-player.y)<13) {
+   b.y=H+100;hitPlayer(9+wave);
+  }
+ }
+ enemyShots=enemyShots.filter(b=>b.y<H+20);
+ enemies=enemies.filter(e=>e.hp>0&&e.y<H+60);
+
+ for(const p of particles){
+  p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
+ }
+ particles=particles.filter(p=>p.life>0);
+
+ for(const s of stars){
+  s.y+=s.s*dt;
+  if(s.y>H){s.y=0;s.x=Math.random()*W;}
+ }
+
+ $("leftHud").innerHTML=`Wave ${wave}<br>Hull ${Math.max(0,Math.ceil(player.hp/player.max*100))}%`;
+ updateStats();
+}
+
+function drawShip(x,y,size,color){
+ ctx.save();ctx.translate(x,y);
+ ctx.fillStyle=color;
+ ctx.beginPath();
+ ctx.moveTo(0,-size);ctx.lineTo(size*.75,size*.65);
+ ctx.lineTo(0,size*.35);ctx.lineTo(-size*.75,size*.65);
+ ctx.closePath();ctx.fill();
+ ctx.fillStyle="#e7ffff";
+ ctx.beginPath();ctx.moveTo(0,-size*.55);
+ ctx.lineTo(size*.18,size*.25);ctx.lineTo(-size*.18,size*.25);
+ ctx.closePath();ctx.fill();
+ ctx.restore();
+}
+
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ ctx.fillStyle="#060b18";ctx.fillRect(0,0,W,H);
+ for(const s of stars){
+  ctx.globalAlpha=.4+s.r*.25;
+  ctx.fillStyle="#d4e6ff";ctx.fillRect(s.x,s.y,s.r,s.r);
+ }
+ ctx.globalAlpha=1;
+
+ if(running&&player){
+  if(player.inv<=0||Math.floor(performance.now()/70)%2===0){
+   drawShip(player.x,player.y,17,"#71f6d2");
+  }
+ }
+
+ ctx.fillStyle="#71f6d2";
+ for(const b of bullets){
+  ctx.fillRect(b.x-2,b.y-8,4,13);
+  ctx.shadowColor="#71f6d2";ctx.shadowBlur=10;
+  ctx.fillRect(b.x-1,b.y-7,2,10);ctx.shadowBlur=0;
+ }
+
+ for(const e of enemies){
+  ctx.fillStyle=e.type>.8?"#ffb86b":"#ff557d";
+  ctx.beginPath();
+  ctx.moveTo(e.x,e.y+e.r);
+  ctx.lineTo(e.x-e.r,e.y-e.r*.6);
+  ctx.lineTo(e.x,e.y-e.r*.25);
+  ctx.lineTo(e.x+e.r,e.y-e.r*.6);
+  ctx.closePath();ctx.fill();
+
+  ctx.fillStyle="#402036";ctx.fillRect(e.x-e.r,e.y-e.r-7,e.r*2,3);
+  ctx.fillStyle="#ff557d";
+  ctx.fillRect(e.x-e.r,e.y-e.r-7,e.r*2*Math.max(0,e.hp/e.max),3);
+ }
+
+ ctx.fillStyle="#ffbd75";
+ for(const b of enemyShots){
+  ctx.beginPath();ctx.arc(b.x,b.y,4,0,Math.PI*2);ctx.fill();
+ }
+
+ for(const p of particles){
+  ctx.globalAlpha=Math.max(0,p.life/p.max);
+  ctx.fillStyle=p.color;
+  ctx.fillRect(p.x,p.y,3,3);
+ }
+ ctx.globalAlpha=1;
+
+ if(!running){
+  ctx.fillStyle="#ffffff08";
+  ctx.fillRect(0,0,W,H);
+ }
+}
+
+function loop(now){
+ const dt=Math.min(.035,(now-lastTime)/1000||0);
+ lastTime=now;
+ update(dt);draw();
+ requestAnimationFrame(loop);
+}
+
+function switchTab(next){
+ tab=next;
+ document.querySelectorAll("nav button").forEach(b=>
+  b.classList.toggle("active",b.dataset.tab===next));
+ ["ships","upgrades","base"].forEach(id=>
+  $(id).classList.toggle("hidden",id!==next));
+ canvas.classList.toggle("hidden",next!=="battle");
+ $("hud").classList.toggle("hidden",next!=="battle");
+ $("message").classList.toggle("hidden",next!=="battle"||running);
+ if(next==="ships")renderShips();
+ if(next==="upgrades")renderUpgrades();
+ if(next==="base")renderBase();
+}
+
+document.querySelectorAll("nav button").forEach(b=>
+ b.addEventListener("click",()=>switchTab(b.dataset.tab)));
+$("start").onclick=startMission;
+
+function renderShips(){
+ $("ships").innerHTML="<h2>🚀 Shipyard</h2><p class='small'>Unlock ships with crystals. Each ship has different speed, damage and hull stats.</p>";
+ const grid=document.createElement("div");grid.className="cards";
+ shipData.forEach((s,i)=>{
+  const unlocked=save.unlocked.includes(i);
+  const card=document.createElement("div");card.className="card";
+  card.innerHTML=`<div class="ship-icon">${s[1]}</div>
+  <h3>${i+1}. ${s[0]}</h3>
+  <p>Speed ${s[3]}× · Damage ${s[4]}× · Hull ${s[5]}×</p>
+  <p>${unlocked?"Unlocked":`Unlock: 💎 ${s[2]}`}</p>`;
+  const btn=document.createElement("button");
+  btn.textContent=save.selected===i?"✓ Selected":unlocked?"Select":"Unlock";
+  btn.disabled=save.selected===i||(!unlocked&&save.crystals<s[2]);
+  btn.onclick=()=>{
+   if(!save.unlocked.includes(i)){
+    save.crystals-=s[2];save.unlocked.push(i);
+   }
+   save.selected=i;persist();renderShips();
+  };
+  card.append(btn);grid.append(card);
+ });
+ $("ships").append(grid);
+}
+
+const upgradeData=[
+ ["damage","Weapon Damage",50,"Increase damage by 25% per level."],
+ ["speed","Engine Speed",45,"Move 12% faster per level."],
+ ["hull","Hull Reinforcement",55,"Increase maximum hull by 30% per level."],
+ ["rate","Fire Rate",65,"Shoot more frequently."]
+];
+
+function renderUpgrades(){
+ $("upgrades").innerHTML="<h2>⬆ Ship Upgrades</h2><p class='small'>Upgrades persist between missions. Costs increase at each level.</p>";
+ const grid=document.createElement("div");grid.className="cards";
+ upgradeData.forEach(([id,name,base,desc])=>{
+  const level=save.upgrades[id],cost=base*(level+1);
+  const card=document.createElement("div");card.className="card";
+  card.innerHTML=`<h3>${name}</h3><p>${desc}</p>
+  <div class="small">Level ${level} / 10</div>
+  <div class="bar"><span style="width:${level*10}%"></span></div>
+  <p>Cost: 💎 ${cost}</p>`;
+  const btn=document.createElement("button");
+  btn.textContent=level>=10?"MAX LEVEL":"Upgrade";
+  btn.disabled=level>=10||save.crystals<cost;
+  btn.onclick=()=>{
+   if(save.crystals<cost||save.upgrades[id]>=10)return;
+   save.crystals-=cost;save.upgrades[id]++;
+   persist();renderUpgrades();
+  };
+  card.append(btn);grid.append(card);
+ });
+ $("upgrades").append(grid);
+}
+
+function renderBase(){
+ const level=save.base.level;
+ const cost=150*(level+1);
+ $("base").innerHTML=`
+ <h2>🏠 Frontier Base</h2>
+ <div class="card">
+  <div class="ship-icon">🏰</div>
+  <h3>Outpost Level ${level}</h3>
+  <p>Upgrade your base to improve mission recovery. Your base currently has ${save.base.repairs} repair cycles recorded.</p>
+  <p>Next upgrade: 💎 ${cost}</p>
+  <button id="baseUpgrade" ${save.crystals<cost||level>=5?"disabled":""}>
+   ${level>=5?"MAX LEVEL":"Upgrade Base"}
+  </button>
+ </div>
+ <div class="card" style="margin-top:12px">
+  <h3>🔧 Ship Repair</h3>
+  <p>Repair your ship before starting the next mission.</p>
+  <p>Cost: 💎 25</p>
+  <button id="repair" ${save.crystals<25?"disabled":""}>Repair</button>
+ </div>`;
+ $("baseUpgrade").onclick=()=>{
+  if(level>=5||save.crystals<cost)return;
+  save.crystals-=cost;save.base.level++;persist();renderBase();
+ };
+ $("repair").onclick=()=>{
+  if(save.crystals<25)return;
+  save.crystals-=25;save.base.repairs++;persist();renderBase();
+ };
+}
+
+function bindHold(id,setter){
+ const el=$(id);
+ const on=e=>{e.preventDefault();setter(true);};
+ const off=e=>{e.preventDefault();setter(false);};
+ el.addEventListener("pointerdown",on);
+ el.addEventListener("pointerup",off);
+ el.addEventListener("pointercancel",off);
+ el.addEventListener("pointerleave",off);
+}
+bindHold("left",v=>touchLeft=v);
+bindHold("right",v=>touchRight=v);
+bindHold("fire",v=>touchFire=v);
+
+addEventListener("keydown",e=>{
+ if(["ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();
+ keys[e.code==="Space"?"Space":e.key]=true;
+ if(e.key===" " )keys.Space=true;
+});
+addEventListener("keyup",e=>{
+ keys[e.code==="Space"?"Space":e.key]=false;
+ if(e.key===" ")keys.Space=false;
+});
+
+updateStats();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
