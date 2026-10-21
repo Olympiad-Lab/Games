@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Orbit Defense | Arcade Nest</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#060a16;color:#eef5ff;font-family:system-ui,sans-serif}
+header{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:#0d1527;border-bottom:1px solid #253451}
+h1{margin:0;font-size:22px;color:#85e8ff}
+#stats{font-size:13px;text-align:right;line-height:1.7}
+main{width:min(850px,100%);margin:auto;padding:12px}
+#wrap{position:relative;width:100%;aspect-ratio:4/5;max-height:76vh;background:#070d20;border:1px solid #263656;border-radius:14px;overflow:hidden}
+canvas{width:100%;height:100%;display:block;touch-action:none}
+#overlay{position:absolute;inset:0;display:grid;place-items:center;background:#050a19c9;text-align:center;padding:20px}
+#overlay h2{font-size:clamp(27px,6vw,42px);margin:0;color:#85e8ff}
+#overlay p{line-height:1.6;color:#c0cde4}
+button{padding:12px 18px;background:#85e8ff;color:#07101c;border:0;border-radius:9px;font-weight:900;cursor:pointer}
+.help{color:#9eafcc;text-align:center;font-size:13px;line-height:1.7}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header>
+<div><h1>🪐 ORBIT DEFENSE</h1><small>Protect the last world</small></div>
+<div id="stats">Score: 0<br>Planet: 100%<br>Energy: 0</div>
+</header>
+<main>
+<div id="wrap">
+<canvas id="game"></canvas>
+<div id="overlay">
+<div>
+<h2>ORBIT DEFENSE</h2>
+<p>Destroy incoming meteors and hostile drones.<br>Protect your planet for as long as possible.</p>
+<button id="start">DEPLOY DEFENSE</button>
+</div>
+</div>
+</div>
+<p class="help">Move: ← → or A/D · Fire: Space or tap the battlefield<br>Collect blue energy orbs for bonus points.</p>
+</main>
+<script>
+(()=>{
+const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
+const $=id=>document.getElementById(id);
+let W=400,H=500,dpr=1,last=0,running=false;
+let player,shots=[],enemies=[],particles=[],orbs=[],stars=[];
+let score=0,energy=0,wave=1,spawn=0,fire=0,keys={},pointerX=null;
+let best=Number(localStorage.getItem("orbitDefenseBest")||0);
+
+function resize(){
+ const r=canvas.getBoundingClientRect();
+ dpr=Math.min(devicePixelRatio||1,2);
+ W=r.width;H=r.height;
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ stars=Array.from({length:75},()=>({x:Math.random()*W,y:Math.random()*H,s:10+Math.random()*35,r:Math.random()*1.5+.4}));
+ if(player)player.x=Math.min(W-20,Math.max(20,player.x));
+}
+new ResizeObserver(resize).observe(canvas);
+
+function start(){
+ score=0;energy=0;wave=1;spawn=0;fire=0;
+ player={x:W/2,hp:100};
+ shots=[];enemies=[];particles=[];orbs=[];
+ running=true;$("overlay").classList.add("hidden");
+ updateStats();
+}
+
+function updateStats(){
+ $("stats").innerHTML=`Score: ${score} · Best: ${Math.max(best,score)}<br>Planet: ${Math.max(0,Math.ceil(player?.hp??100))}%<br>Energy: ${energy} · Wave ${wave}`;
+}
+
+function spawnEnemy(){
+ const r=Math.random();
+ enemies.push({
+  x:20+Math.random()*(W-40),y:-18,
+  r:r>.8?15:10,
+  hp:r>.8?3:1,
+  speed:35+Math.random()*25+wave*4,
+  drift:(Math.random()-.5)*35,
+  kind:r>.8?"drone":"meteor"
+ });
+}
+
+function burst(x,y,color){
+ for(let i=0;i<10;i++){
+  const a=Math.random()*Math.PI*2,s=20+Math.random()*100;
+  particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:.4+Math.random()*.4,color});
+ }
+}
+
+function shoot(){
+ if(fire>0||!running)return;
+ fire=.18;
+ shots.push({x:player.x,y:H-55,vy:-360});
+}
+
+function end(){
+ running=false;
+ best=Math.max(best,score);
+ localStorage.setItem("orbitDefenseBest",best);
+ $("overlay").classList.remove("hidden");
+ $("overlay").innerHTML=`<div><h2>PLANET LOST</h2><p>Score: ${score}<br>Best: ${best}<br>Energy collected: ${energy}</p><button id="restart">REDEPLOY</button></div>`;
+ $("restart").onclick=start;
+}
+
+function update(dt){
+ if(!running)return;
+ fire=Math.max(0,fire-dt);
+ spawn+=dt;
+ if(spawn>Math.max(.25,1.05-wave*.055)){
+  spawn=0;spawnEnemy();
+ }
+ if(score>0&&score%250<2)wave=Math.max(wave,1+Math.floor(score/250));
+
+ let dir=(keys.ArrowLeft||keys.a?-1:0)+(keys.ArrowRight||keys.d?1:0);
+ if(pointerX!==null)player.x+=(pointerX-player.x)*Math.min(1,dt*12);
+ else player.x+=dir*240*dt;
+ player.x=Math.max(16,Math.min(W-16,player.x));
+ if(keys.Space)shoot();
+
+ for(const s of shots)s.y+=s.vy*dt;
+ shots=shots.filter(s=>s.y>-10);
+
+ for(const e of enemies){
+  e.y+=e.speed*dt;e.x+=e.drift*dt;
+  if(e.x<e.r||e.x>W-e.r)e.drift*=-1;
+  if(e.y>H-48){
+   e.dead=true;player.hp-=e.kind==="drone"?15:9;
+   burst(W/2,H-25,"#ff5675");
+   if(player.hp<=0){player.hp=0;end();return}
+  }
+  if(Math.hypot(e.x-player.x,e.y-(H-55))<e.r+12){
+   e.dead=true;player.hp-=12;
+   if(player.hp<=0){player.hp=0;end();return}
+  }
+  for(const s of shots){
+   if(!s.dead&&!e.dead&&Math.hypot(s.x-e.x,s.y-e.y)<e.r+4){
+    s.dead=true;e.hp--;
+    burst(s.x,s.y,"#85e8ff");
+    if(e.hp<=0){
+     e.dead=true;score+=10;
+     if(Math.random()<.28)orbs.push({x:e.x,y:e.y,r:6,vy:70});
+    }
+   }
+  }
+ }
+ enemies=enemies.filter(e=>!e.dead&&e.y<H+30);
+ shots=shots.filter(s=>!s.dead);
+
+ for(const o of orbs){
+  o.y+=o.vy*dt;
+  if(Math.hypot(o.x-player.x,o.y-(H-55))<22){
+   o.dead=true;energy++;score+=25;
+  }
+ }
+ orbs=orbs.filter(o=>!o.dead&&o.y<H+20);
+
+ for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.t-=dt}
+ particles=particles.filter(p=>p.t>0);
+ for(const s of stars){s.y+=s.s*dt;if(s.y>H){s.y=0;s.x=Math.random()*W}}
+ updateStats();
+}
+
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ ctx.fillStyle="#070d20";ctx.fillRect(0,0,W,H);
+ for(const s of stars){ctx.fillStyle="#b5d8ff";ctx.globalAlpha=.4;ctx.fillRect(s.x,s.y,s.r,s.r)}
+ ctx.globalAlpha=1;
+
+ // Planet
+ const px=W/2,py=H+45,pr=Math.min(W*.25,95);
+ const g=ctx.createRadialGradient(px-pr*.3,py-pr*.7,3,px,py,pr*1.6);
+ g.addColorStop(0,"#65e8c5");g.addColorStop(.4,"#248aab");g.addColorStop(1,"#101a52");
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,pr,0,Math.PI*2);ctx.fill();
+
+ // Defensive orbit
+ ctx.strokeStyle="#6cd8ff55";ctx.lineWidth=1;
+ ctx.beginPath();ctx.ellipse(px,py-5,pr*1.55,pr*.55,0,Math.PI,Math.PI*2);ctx.stroke();
+
+ if(player){
+  ctx.save();ctx.translate(player.x,H-55);
+  ctx.fillStyle="#85e8ff";ctx.shadowColor="#85e8ff";ctx.shadowBlur=15;
+  ctx.beginPath();ctx.moveTo(0,-17);ctx.lineTo(13,12);ctx.lineTo(0,7);ctx.lineTo(-13,12);ctx.closePath();ctx.fill();
+  ctx.restore();
+ }
+
+ ctx.fillStyle="#85e8ff";
+ for(const s of shots){ctx.fillRect(s.x-2,s.y-8,4,14)}
+ for(const e of enemies){
+  ctx.fillStyle=e.kind==="drone"?"#ff688b":"#ffb86b";
+  ctx.beginPath();
+  for(let i=0;i<7;i++){
+   const a=i*Math.PI*2/7,r=e.r*(i%2?.72:1);
+   const x=e.x+Math.cos(a)*r,y=e.y+Math.sin(a)*r;
+   if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  }
+  ctx.closePath();ctx.fill();
+ }
+ for(const o of orbs){
+  ctx.fillStyle="#72f6d2";ctx.shadowColor="#72f6d2";ctx.shadowBlur=12;
+  ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+ }
+ for(const p of particles){
+  ctx.globalAlpha=Math.max(0,p.t);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,3,3);
+ }
+ ctx.globalAlpha=1;
+}
+
+function loop(now){
+ const dt=Math.min(.035,(now-last)/1000||0);last=now;
+ update(dt);draw();requestAnimationFrame(loop);
+}
+addEventListener("keydown",e=>{
+ if(["ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();
+ keys[e.key===" "?"Space":e.key]=true;
+ if(e.code==="Space")keys.Space=true;
+});
+addEventListener("keyup",e=>{
+ keys[e.key===" "?"Space":e.key]=false;
+ if(e.code==="Space")keys.Space=false;
+});
+canvas.addEventListener("pointermove",e=>{
+ const r=canvas.getBoundingClientRect();pointerX=e.clientX-r.left;
+});
+canvas.addEventListener("pointerleave",()=>pointerX=null);
+canvas.addEventListener("pointerdown",()=>{if(running)shoot()});
+$("start").onclick=start;
+resize();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
