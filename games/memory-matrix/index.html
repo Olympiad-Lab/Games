@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Memory Matrix | Arcade Nest</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#090d1b;color:#f1f5ff;font-family:system-ui,sans-serif;display:grid;place-items:center;padding:16px}
+.app{width:min(470px,100%);padding:22px;background:#111a2d;border:1px solid #293956;border-radius:20px}
+h1{margin:0;color:#b7a5ff;font-size:30px}
+.sub{color:#9baac7;margin:6px 0 20px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#0a1222;padding:11px 4px;text-align:center;border-radius:9px}
+.stat strong{display:block;color:#b7a5ff;font-size:22px}
+.stat span{color:#9baac7;font-size:12px}
+#message{min-height:48px;line-height:1.5;margin:16px 0}
+#grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.tile{aspect-ratio:1;background:#202d48;border:1px solid #344768;border-radius:11px;padding:0;transition:background .12s,transform .12s}
+.tile:active{transform:scale(.95)}
+.tile.active{background:#b7a5ff;border-color:#e1d9ff;box-shadow:0 0 20px #a18aff66}
+.tile.correct{background:#72f6d2;border-color:#c1ffef}
+.tile.wrong{background:#ff6480;border-color:#ffc2cd}
+button,select{font:inherit}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.controls button,.controls select{flex:1;padding:11px;border-radius:9px;background:#202d48;color:white;border:1px solid #394b6b;cursor:pointer}
+.controls .primary{background:#b7a5ff;color:#0c1020;font-weight:900}
+.note{color:#9baac7;font-size:12px;line-height:1.6;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>🧠 MEMORY MATRIX</h1>
+<p class="sub">Observe. Remember. Reconstruct.</p>
+<div class="stats">
+<div class="stat"><strong id="level">1</strong><span>Level</span></div>
+<div class="stat"><strong id="score">0</strong><span>Score</span></div>
+<div class="stat"><strong id="best">0</strong><span>Personal best</span></div>
+</div>
+<p id="message">Press Start to begin your memory challenge.</p>
+<div id="grid"></div>
+<div class="controls">
+<button class="primary" id="start">START</button>
+<button id="check">CHECK PATTERN</button>
+<select id="difficulty" aria-label="Grid difficulty">
+<option value="3">Easy · 3×3</option>
+<option value="4" selected>Normal · 4×4</option>
+<option value="5">Hard · 5×5</option>
+</select>
+</div>
+<p class="note">
+Watch the highlighted tiles carefully. When they disappear, tap the same tiles.
+Correct patterns earn points. Incorrect patterns cost a life.
+You have three lives. Your personal best is saved locally.
+</p>
+</div>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const grid=$("grid");
+let size=4,pattern=[],chosen=new Set(),level=1,score=0,lives=3;
+let active=false,showing=false,locked=false,timer=null;
+let best=Number(localStorage.getItem("memoryMatrixBest")||0);
+$("best").textContent=best;
+
+function buildGrid(){
+ grid.style.gridTemplateColumns=`repeat(${size},minmax(0,1fr))`;
+ grid.replaceChildren();
+ for(let i=0;i<size*size;i++){
+  const b=document.createElement("button");
+  b.className="tile";b.type="button";
+  b.setAttribute("aria-label",`Tile ${i+1}`);
+  b.addEventListener("click",()=>toggle(i,b));
+  grid.appendChild(b);
+ }
+}
+
+function update(){
+ $("level").textContent=level;
+ $("score").textContent=score;
+ $("best").textContent=best;
+}
+
+function setMessage(text){$("message").textContent=text}
+
+function newRound(){
+ clearTimeout(timer);
+ size=Number($("difficulty").value);
+ buildGrid();
+ pattern=[];chosen.clear();showing=true;locked=true;
+ const total=size*size;
+ const number=Math.min(total-1,level+2);
+ while(pattern.length<number){
+  const n=Math.floor(Math.random()*total);
+  if(!pattern.includes(n))pattern.push(n);
+ }
+ [...grid.children].forEach((b,i)=>{
+  b.classList.remove("active","correct","wrong");
+  if(pattern.includes(i))b.classList.add("active");
+ });
+ setMessage(`Memorize ${number} highlighted tiles!`);
+ timer=setTimeout(()=>{
+  [...grid.children].forEach(b=>b.classList.remove("active"));
+  showing=false;locked=false;
+  setMessage("Now recreate the pattern by tapping the correct tiles.");
+ },Math.max(900,2100-level*55));
+}
+
+function start(){
+ clearTimeout(timer);
+ level=1;score=0;lives=3;active=true;
+ newRound();update();
+}
+
+function toggle(i,button){
+ if(!active||showing||locked||chosen.has(i))return;
+ chosen.add(i);
+ if(pattern.includes(i))button.classList.add("correct");
+ else button.classList.add("wrong");
+ setMessage(`${chosen.size} of ${pattern.length} tiles selected. Lives: ${lives}`);
+}
+
+function check(){
+ if(!active||showing||locked)return;
+ if(chosen.size!==pattern.length){
+  setMessage(`Select exactly ${pattern.length} tiles before checking.`);
+  return;
+ }
+ locked=true;
+ const correct=pattern.every(i=>chosen.has(i));
+ if(correct){
+  score+=level*10;
+  best=Math.max(best,score);
+  localStorage.setItem("memoryMatrixBest",String(best));
+  setMessage(`Perfect! +${level*10} points. Preparing level ${level+1}...`);
+  level++;
+  update();
+  timer=setTimeout(newRound,1000);
+ }else{
+  lives--;
+  update();
+  pattern.forEach(i=>grid.children[i].classList.add("active"));
+  if(lives<=0){
+   active=false;
+   best=Math.max(best,score);
+   localStorage.setItem("memoryMatrixBest",String(best));
+   update();
+   setMessage(`Game over! Final score: ${score}. Press Start to try again.`);
+   $("start").textContent="PLAY AGAIN";
+  }else{
+   setMessage(`Incorrect pattern! ${lives} ${lives===1?"life":"lives"} remaining. Watch the pattern again.`);
+   timer=setTimeout(()=>{
+    pattern.forEach(i=>grid.children[i].classList.remove("active"));
+    locked=false;showing=false;
+    chosen.clear();
+    [...grid.children].forEach(b=>b.classList.remove("correct","wrong"));
+    setMessage("Try selecting the pattern again.");
+   },900);
+  }
+ }
+}
+
+$("start").addEventListener("click",start);
+$("check").addEventListener("click",check);
+$("difficulty").addEventListener("change",()=>{
+ if(active)start();else{size=Number($("difficulty").value);buildGrid()}
+});
+buildGrid();update();
+})();
+</script>
+</body>
+</html>
