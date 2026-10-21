@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vaultbreak | Arcade Nest</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#090e1b;color:#edf3ff;font-family:system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:16px}
+.app{width:min(520px,100%);background:#111a2c;border:1px solid #2a3b58;border-radius:20px;padding:22px;box-shadow:0 20px 70px #0008}
+h1{margin:0;color:#72f6d2;font-size:30px}
+.subtitle{color:#9eafcc;margin:5px 0 20px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+button,select,input{font:inherit;border-radius:9px;padding:11px;background:#1b2942;color:#fff;border:1px solid #354968}
+button{cursor:pointer;font-weight:700}
+button:hover{border-color:#72f6d2}
+.primary{background:#72f6d2;color:#07120f;border-color:#72f6d2}
+input{width:100%;margin:12px 0;font-size:24px;letter-spacing:8px;text-align:center}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
+.stat{background:#0b1324;padding:12px;border-radius:10px;text-align:center}
+.stat strong{display:block;font-size:21px;color:#72f6d2}
+.stat span{font-size:12px;color:#9eafcc}
+#history{margin-top:16px;display:grid;gap:7px}
+.attempt{background:#0b1324;padding:10px;border-radius:8px;display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.good{color:#72f6d2}.bad{color:#ff8b9b}
+#message{min-height:45px;padding:12px 0;line-height:1.5}
+.rules{font-size:13px;color:#9eafcc;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>🔐 VAULTBREAK</h1>
+<p class="subtitle">Crack the code. Outsmart the vault.</p>
+
+<div class="row">
+<select id="difficulty" aria-label="Difficulty">
+<option value="3">Easy · 3 digits</option>
+<option value="4" selected>Normal · 4 digits</option>
+<option value="5">Hard · 5 digits</option>
+</select>
+<button id="newGame">New Vault</button>
+</div>
+
+<div class="stats">
+<div class="stat"><strong id="tries">0</strong><span>Attempts used</span></div>
+<div class="stat"><strong id="score">0</strong><span>Session score</span></div>
+<div class="stat"><strong id="best">0</strong><span>Best score</span></div>
+</div>
+
+<p id="message">A new vault awaits. Enter a code with unique digits.</p>
+<input id="guess" inputmode="numeric" autocomplete="off" placeholder="••••" aria-label="Your code guess">
+<div class="row">
+<button class="primary" id="submit" style="flex:1">CRACK VAULT</button>
+<button id="hint">Hint</button>
+</div>
+<div id="history"></div>
+<p class="rules">
+<strong>Rules:</strong> Digits are unique and range from 0 to 9.
+🟢 Correct digit in the correct position.
+🟡 Correct digit in the wrong position.
+You have 8 attempts. Hints cost 15 points.
+</p>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+let secret=[],attempts=0,over=false,score=0;
+let best=Number(localStorage.getItem("vaultbreakBest")||0);
+$("best").textContent=best;
+
+function start(){
+ const n=Number($("difficulty").value);
+ const digits=[0,1,2,3,4,5,6,7,8,9];
+ for(let i=digits.length-1;i>0;i--){
+  const j=Math.floor(Math.random()*(i+1));
+  [digits[i],digits[j]]=[digits[j],digits[i]];
+ }
+ secret=digits.slice(0,n);
+ attempts=0;over=false;
+ $("tries").textContent="0";
+ $("guess").value="";
+ $("guess").maxLength=n;
+ $("guess").placeholder="•".repeat(n);
+ $("guess").disabled=false;
+ $("submit").disabled=false;
+ $("history").replaceChildren();
+ $("message").textContent=`Vault generated. Crack the ${n}-digit code in 8 attempts.`;
+ $("guess").focus();
+}
+
+function submit(){
+ if(over)return;
+ const text=$("guess").value.trim();
+ const n=secret.length;
+ if(!new RegExp("^\\d{"+n+"}$").test(text)){
+  $("message").textContent=`Enter exactly ${n} digits.`;
+  return;
+ }
+ if(new Set(text).size!==n){
+  $("message").textContent="Every digit must be unique.";
+  return;
+ }
+ attempts++;
+ const guess=[...text].map(Number);
+ const exact=guess.filter((d,i)=>d===secret[i]).length;
+ const misplaced=guess.filter((d,i)=>d!==secret[i]&&secret.includes(d)).length;
+ const line=document.createElement("div");
+ line.className="attempt";
+ const left=document.createElement("strong");
+ left.textContent=text;
+ const right=document.createElement("span");
+ right.innerHTML=`<span class="good">🟢 ${exact}</span> &nbsp; <span style="color:#ffd16e">🟡 ${misplaced}</span>`;
+ line.append(left,right);
+ $("history").prepend(line);
+ $("tries").textContent=attempts;
+ $("guess").value="";
+
+ if(exact===n){
+  const points=Math.max(10,(9-attempts)*20);
+  score+=points;
+  $("score").textContent=score;
+  best=Math.max(best,score);
+  localStorage.setItem("vaultbreakBest",best);
+  $("best").textContent=best;
+  $("message").textContent=`🔓 Vault cracked! +${points} points. The code was ${text}.`;
+  over=true;
+ }else if(attempts>=8){
+  $("message").textContent=`🔒 Vault locked. The code was ${secret.join("")}. Start a new vault!`;
+  over=true;
+ }else{
+  $("message").textContent=`Not quite. ${8-attempts} attempts remaining.`;
+ }
+ if(over){
+  $("guess").disabled=true;
+  $("submit").disabled=true;
+ }
+}
+
+function hint(){
+ if(over)return;
+ score=Math.max(0,score-15);
+ $("score").textContent=score;
+ const position=Math.floor(Math.random()*secret.length);
+ $("message").textContent=`Hint: Digit ${position+1} is ${secret[position]}. You lost 15 points.`;
+}
+
+$("submit").addEventListener("click",submit);
+$("newGame").addEventListener("click",start);
+$("hint").addEventListener("click",hint);
+$("guess").addEventListener("keydown",e=>{if(e.key==="Enter")submit()});
+$("difficulty").addEventListener("change",start);
+start();
+})();
+</script>
+</body>
+</html>
